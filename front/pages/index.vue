@@ -69,24 +69,60 @@
           <v-btn
             color="primary"
             nuxt
-            to="/inspire"
+            @click="postMessage"
           >
             Continue
           </v-btn>
+          <v-text-field v-model="messageText"></v-text-field>
+          <ul id="example-1">
+            <li v-for="item in messages" :key="item">
+              {{ item }}
+            </li>
+          </ul>
         </v-card-actions>
-      </v-card>
+       </v-card>
     </v-flex>
   </v-layout>
 </template>
-
 <script>
+import ActionCable from 'actioncable';
 import Logo from '~/components/Logo.vue'
 import VuetifyLogo from '~/components/VuetifyLogo.vue'
 
 export default {
-  components: {
+    components: {
     Logo,
     VuetifyLogo
+  },
+  data() {
+    return {
+      messageText: ""
+    };
+  },
+  computed:{
+    messages(){
+      return this.$store.state.messages;
+    } 
+  },
+  created() {
+    const cable = ActionCable.createConsumer('ws://localhost:3000/cable');
+
+    this.messageChannel = cable.subscriptions.create( "PostChannel",{
+      received: (data) => {
+        this.$store.commit("addMessage", data);
+      },
+    })
+  },
+  methods: {
+    postMessage: function() {
+      //ActionCable PostChannelにおけるpostメソッドを実行する
+      this.messageChannel.perform('post', { 
+        message: this.messageText, 
+      });
+      // console.log(this.$store.state.messages);
+      //メッセージ追加後にテキストボックスを空にする
+      this.messageText = ""
+    }
   }
-}
+};
 </script>
